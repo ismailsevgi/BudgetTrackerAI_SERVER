@@ -1,6 +1,6 @@
 const express = require('express');
 const cors = require('cors');
-const mongoose = require('mongoose');
+
 const User = require('./models/userModel');
 const app = express();
 const connectingMongoDB = require('./connectMongoDb');
@@ -12,36 +12,23 @@ const yearsAggregation = require('./Aggregations/yearsAggregation');
 connectingMongoDB();
 
 app.use(cors());
+app.use(express.json());
 
-app.get('/', async (req, res) => {
+app.use('/', async (req, res) => {
   //plan: (token, username, year)
-
-  console.log(req);
+  let user;
 
   try {
-    const yearAggregation = [
-      {
-        $match: { username: 'ismail' },
-      },
-      {
-        $project: {
-          _id: 0,
-          username: true,
-          password: true,
-          data: true,
-          cards: true,
-          years: {
-            $map: {
-              input: { $objectToArray: '$data' },
-              as: 'year',
-              in: '$$year.k',
-            },
-          },
-        },
-      },
-    ];
+    if (req.method === 'POST') {
+      console.log('POST GELDİ');
+      console.log(req.body);
+      user = await User.aggregate(yearsAggregation.byYear(req.body.year));
+    }
 
-    const user = await User.aggregate(yearsAggregation);
+    if (req.method === 'GET') {
+      console.log('GET GELDİ');
+      user = await User.aggregate(yearsAggregation.allYears);
+    }
 
     res.send(user);
   } catch (error) {
